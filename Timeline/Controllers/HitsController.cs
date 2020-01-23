@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using Timeline.Models;
@@ -16,18 +17,25 @@ namespace Timeline.Controllers
         public HitsController(HitsService hitService)
         {
             _hitsService = hitService;
-            //var aux2 = new Hit();
-            //aux2.setId();
-            //aux2.HitDate = DateTime.Now;
-            //aux2.Title = "Todos somos ricos";
-            //aux2.Description = "Aunque solo un poco";
-            //Console.WriteLine(aux2.ToJson());
-            ////var aux = DateTime.Now.ToJson();
-            ////Console.WriteLine("DATE :" + aux);
         }
 
-        public ActionResult<List<Hit>> Get() =>
-            _hitsService.Get();
+        public ActionResult<List<Hit>> Get() {
+            List<Hit> hits;
+
+            try
+            {
+                hits = _hitsService.Get();
+                return new OkObjectResult(
+                    new Response(HttpStatusCode.OK, false, hits)
+                );
+            }
+            catch (Exception)
+            {
+                return new NotFoundObjectResult(
+                    new Response(HttpStatusCode.InternalServerError, true, null, HttpStatusCode.InternalServerError.ToString())
+                );
+            }
+        }
 
         [HttpGet("{id}", Name = "GetHit")]
         public ActionResult<Hit> Get(string id)
@@ -36,10 +44,15 @@ namespace Timeline.Controllers
 
             if (hit == null)
             {
-                return NotFound();
-            }
+                return new NotFoundObjectResult(
+                    new Response(HttpStatusCode.NotFound, true, null, HttpStatusCode.NotFound.ToString())
+                );
+            };
 
-            return hit;
+
+            return new OkObjectResult(
+                new Response(HttpStatusCode.OK, false, hit)
+                );
         }
 
         //[HttpPost]
@@ -58,12 +71,23 @@ namespace Timeline.Controllers
 
         //    return CreatedAtRoute("GetHit", new { id = hit.Id.ToString() });
         //}
+
         [HttpPost]
         public ActionResult<Hit> Create(Hit hit)
         {
-            _hitsService.Create(hit);
+            try
+            {
+                _hitsService.Create(hit);
+                var response = new Response(HttpStatusCode.Created, false, hit, HttpStatusCode.Created.ToString());
 
-            return CreatedAtRoute("GetHit", new { id = hit.Id }, hit);
+                return CreatedAtRoute("GetHit", new { id = hit.Id }, response);
+            }
+            catch
+            {
+                return new BadRequestObjectResult(
+                    new Response(HttpStatusCode.BadRequest, true, null, HttpStatusCode.BadRequest.ToString())
+                );
+            }
         }
 
         [HttpPut("{id:length(24)}")]

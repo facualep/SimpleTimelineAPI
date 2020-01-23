@@ -23,11 +23,22 @@ namespace Timeline
             Configuration = configuration;
         }
 
+        readonly string MyAllowAllOrigins = "_myAllowAllOrigins";
+
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy(MyAllowAllOrigins,
+                builder =>
+                {
+                    builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+                });
+            });
+
             // requires using Microsoft.Extensions.Options
             services.Configure<TimelineDatabaseSettings>(
                 Configuration.GetSection(nameof(TimelineDatabaseSettings)));
@@ -54,6 +65,8 @@ namespace Timeline
                 Console.Write("OTHER");
             }
 
+            app.UseCors(MyAllowAllOrigins);
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -64,6 +77,7 @@ namespace Timeline
             {
                 endpoints.MapControllers();
             });
+
         }
     }
 }
